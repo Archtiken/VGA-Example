@@ -76,8 +76,8 @@ module tt_um_vga_Archtiken (
   localparam [5:0] GREEN = {2'b00, 2'b11, 2'b00};
   localparam [5:0] WHITE = {2'b11, 2'b11, 2'b11};
 
-  // Glyph definitions (8x8)
-  localparam [7:0] LEFT_GLYPH[0:7] = '{
+  // Glyph definitions (8x8 flattened to 64 bits)
+  localparam [63:0] LEFT_GLYPH = {
       8'b00010000,
       8'b00110000,
       8'b01110000,
@@ -87,7 +87,7 @@ module tt_um_vga_Archtiken (
       8'b00010000,
       8'b00000000
   };
-  localparam [7:0] RIGHT_GLYPH[0:7] = '{
+  localparam [63:0] RIGHT_GLYPH = {
       8'b00001000,
       8'b00001100,
       8'b00001110,
@@ -97,7 +97,7 @@ module tt_um_vga_Archtiken (
       8'b00001000,
       8'b00000000
   };
-  localparam [7:0] UP_GLYPH[0:7] = '{
+  localparam [63:0] UP_GLYPH = {
       8'b00010000,
       8'b00111000,
       8'b01111100,
@@ -107,7 +107,7 @@ module tt_um_vga_Archtiken (
       8'b00010000,
       8'b00010000
   };
-  localparam [7:0] DOWN_GLYPH[0:7] = '{
+  localparam [63:0] DOWN_GLYPH = {
       8'b00010000,
       8'b00010000,
       8'b00010000,
@@ -117,7 +117,7 @@ module tt_um_vga_Archtiken (
       8'b00111000,
       8'b00010000
   };
-  localparam [7:0] A_GLYPH[0:7] = '{
+  localparam [63:0] A_GLYPH = {
       8'b00111100,
       8'b01100110,
       8'b01100110,
@@ -127,7 +127,7 @@ module tt_um_vga_Archtiken (
       8'b01100110,
       8'b00000000
   };
-  localparam [7:0] B_GLYPH[0:7] = '{
+  localparam [63:0] B_GLYPH = {
       8'b01111100,
       8'b01100110,
       8'b01100110,
@@ -137,7 +137,7 @@ module tt_um_vga_Archtiken (
       8'b01111100,
       8'b00000000
   };
-  localparam [7:0] X_GLYPH[0:7] = '{
+  localparam [63:0] X_GLYPH = {
       8'b11000011,
       8'b01100110,
       8'b00111100,
@@ -147,7 +147,7 @@ module tt_um_vga_Archtiken (
       8'b01100110,
       8'b11000011
   };
-  localparam [7:0] Y_GLYPH[0:7] = '{
+  localparam [63:0] Y_GLYPH = {
       8'b11000011,
       8'b01100110,
       8'b00111100,
@@ -157,7 +157,7 @@ module tt_um_vga_Archtiken (
       8'b00011000,
       8'b00011000
   };
-  localparam [7:0] L_GLYPH[0:7] = '{
+  localparam [63:0] L_GLYPH = {
       8'b11100000,
       8'b11100000,
       8'b11100000,
@@ -167,7 +167,7 @@ module tt_um_vga_Archtiken (
       8'b11111110,
       8'b00000000
   };
-  localparam [7:0] R_GLYPH[0:7] = '{
+  localparam [63:0] R_GLYPH = {
       8'b11111100,
       8'b11100110,
       8'b11100110,
@@ -177,7 +177,7 @@ module tt_um_vga_Archtiken (
       8'b11101110,
       8'b00000000
   };
-  localparam [7:0] SELECT_GLYPH[0:7] = '{
+  localparam [63:0] SELECT_GLYPH = {
       8'b00011000,
       8'b00100100,
       8'b01000010,
@@ -187,7 +187,7 @@ module tt_um_vga_Archtiken (
       8'b00100100,
       8'b00011000
   };
-  localparam [7:0] START_GLYPH[0:7] = '{
+  localparam [63:0] START_GLYPH = {
       8'b00011000,
       8'b01011010,
       8'b10011001,
@@ -228,13 +228,13 @@ module tt_um_vga_Archtiken (
 
   // Pressed state logic
   wire any_active = left_act | right_act | up_act | down_act | a_act | b_act |
-                   x_act | y_act | l_act | r_act | sel_act | strt_act;
+                    x_act | y_act | l_act | r_act | sel_act | strt_act;
   wire any_pressed = (left_act & inp_left) | (right_act & inp_right) | 
-                    (up_act & inp_up) | (down_act & inp_down) |
-                    (a_act & inp_a) | (b_act & inp_b) |
-                    (x_act & inp_x) | (y_act & inp_y) |
-                    (l_act & inp_l) | (r_act & inp_r) |
-                    (sel_act & inp_select) | (strt_act & inp_start);
+                     (up_act & inp_up) | (down_act & inp_down) |
+                     (a_act & inp_a) | (b_act & inp_b) |
+                     (x_act & inp_x) | (y_act & inp_y) |
+                     (l_act & inp_l) | (r_act & inp_r) |
+                     (sel_act & inp_select) | (strt_act & inp_start);
 
   // RGB output logic
   always @(posedge clk) begin
@@ -254,14 +254,15 @@ module tt_um_vga_Archtiken (
   // Scaled glyph activation function (2x size)
   function glyph_active;
     input [9:0] x0, y0;
-    input [7:0] glyph[0:7];
+    input [63:0] glyph;
     reg [9:0] x_rel, y_rel;
     reg [7:0] row;
     begin
       if ((pix_x >= x0) && (pix_x < x0 + 32) && (pix_y >= y0) && (pix_y < y0 + 32)) begin
         x_rel = (pix_x - x0) >> 2;  // Scale coordinates
         y_rel = (pix_y - y0) >> 2;
-        row = glyph[y_rel];
+        // Shift right by (7 - y_rel) bytes to extract the specific 8-bit row
+        row = (glyph >> ((7 - y_rel) * 8)) & 8'hFF; 
         glyph_active = row[7-x_rel];
       end else begin
         glyph_active = 0;
